@@ -16,6 +16,7 @@ alias mygit = /this/repo/path/main.sh
 
 ```sh
 mygit init
-mygit add filename/.
-mygit commit
+mygit add . (to stage all files)
+mygit add <filename> (to stage a specific file)
+mygit cat-file <hash> (to view the contents of an object)
 ```
