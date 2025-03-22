@@ -1,4 +1,5 @@
 import zlib from 'zlib';
+import path from 'path';
 import fs from 'fs';
 import { generateHash } from './HashUtils.js';
 import { createFolder, writeFile, readFile } from './FileUtils.js';
@@ -16,22 +17,36 @@ function createBlob(filePath) {
     return hash;
 }
 
+function writeTree(treeEntries) {
+    const content = Buffer.concat(treeEntries);
+    const header = `tree ${content.length}\0`;
+    const tree = Buffer.concat([Buffer.from(header), content]);
+    const treeHash = generateHash(tree);
+    const folder = treeHash.slice(0, 2);
+    const file = treeHash.slice(2);
+    createFolder(`.git/objects/${folder}`);
+    writeFile(`.git/objects/${folder}/${file}`, zlib.deflateSync(tree));
+    return treeHash;
+}
+
 function stageAllFiles(dir, index) {
-    const files = fs.readdirSync(dir, index);
+    const fullPath = path.resolve(process.cwd(), dir);
+    const files = fs.readdirSync(fullPath);
+
     files.forEach((file) => {
-        const stats = fs.statSync(`${dir}/${file}`);
+        const filePath = path.join(fullPath, file);
+        const stats = fs.statSync(filePath);
+
         if (stats.isDirectory()) {
-            if (file === '.git') {
-                return;
+            if (file !== '.git') {
+                stageAllFiles(path.join(dir, file), index);
             }
-            stageAllFiles(`${dir}/${file}`, index);
         } else {
-            const hash = createBlob(file);
-            const relativePath =
-                `${dir.slice(process.cwd().length)}/${file}`.slice(1);
+            const relativePath = path.relative(process.cwd(), filePath);
+            const hash = createBlob(relativePath);
             index.push(`${hash} ${relativePath}`);
         }
     });
 }
 
-export { createBlob, stageAllFiles };
+export { createBlob, writeTree, stageAllFiles };
