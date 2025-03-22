@@ -9,7 +9,7 @@ export class AddCommand extends Command {
             case '.':
                 // stage all files
                 const indexEntries = [];
-                stageAllFiles(process.cwd(), indexEntries);
+                stageAllFiles('./', indexEntries);
                 writeFile('.git/index', Buffer.from(indexEntries.join('\n')));
                 break;
             default:
